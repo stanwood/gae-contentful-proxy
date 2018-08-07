@@ -31,7 +31,7 @@ class ReplaceAssetLinks(object):
     def transform_url(self, url):
         original_url = urlparse.urlparse(url)
         path = '/'.join(original_url.path.split('/')[1:])
-        proxy_url = '{}/contentful/files_cache/{}/{}'.format(
+        proxy_url = '{}/contentful/file_cache/{}/{}'.format(
             self.proxy_hostname,
             original_url.hostname,
             path
