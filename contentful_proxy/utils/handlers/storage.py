@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 import abc
 
+# noinspection PyPackageRequirements
 import google.cloud.storage
 import webapp2
 from google.appengine.api.app_identity import app_identity

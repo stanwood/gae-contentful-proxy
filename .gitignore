@@ -54,3 +54,5 @@ target/
 .idea/
 envs
 environment.sh
+*/ext/*
+.pytest_cache
