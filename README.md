@@ -1,3 +1,5 @@
+[![docs badge](https://readthedocs.org/projects/gae-contentful-proxy/badge/?version=latest&style=flat)](https://gae-contentful-proxy.readthedocs.io/en/latest/)
+
 # Contentful proxy module
 
 Module based on top of Google Cloud Platform which creates simple proxy for 
