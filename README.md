@@ -70,3 +70,16 @@ Module based on top of Google Cloud Platform which creates simple proxy for
       schedule: every day 2:00
       timezone: Europe/Berlin
     ```
+
+## Documentation
+
+Auto generate documentation
+
+```bash
+
+cd docs/
+
+sphinx-apidoc -o ./source/_modules/ ../contentful_proxy/
+
+make html
+```

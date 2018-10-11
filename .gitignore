@@ -56,3 +56,4 @@ envs
 environment.sh
 */ext/*
 .pytest_cache
+ext
