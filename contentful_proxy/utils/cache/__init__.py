@@ -19,6 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+import hashlib
 import json
 import logging
 
@@ -43,14 +44,15 @@ class Client(contentful.Client):
     CACHE_TTL = 10
 
     def __init__(self, *args, **kwargs):
-        self.base_url = kwargs.pop('base_url')
+        self.CONTENT_TRANSFORMATIONS = kwargs.pop('transformations')
         kwargs['raw_mode'] = True   # do not want any transformation of responses
         super(Client, self).__init__(*args, **kwargs)
 
     def memcache_key(self, url, query):
-        return u'contentful:{}:{}?{}'.format(
+        return u'contentful:{}:{}:{}?{}'.format(
             self.space_id,
             url,
+            hashlib.md5(str(self.CONTENT_TRANSFORMATIONS)).hexdigest(),
             json.dumps(query)
         )
 
@@ -99,13 +101,7 @@ class Client(contentful.Client):
         except ValueError:
             pass
         else:
-            content_transformations = [
-                transformations.ReplaceAssetLinks(proxy_hostname=self.base_url),
-                transformations.ResolveIncludes(),
-                transformations.RemoveIncludes(),
-            ]
-
-            for transformation in content_transformations:
+            for transformation in self.CONTENT_TRANSFORMATIONS:
                 transformation(content)
 
             content = json.dumps(content)
