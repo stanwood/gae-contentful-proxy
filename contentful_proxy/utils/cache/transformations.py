@@ -121,11 +121,18 @@ class FlattenFields(object):
 
     @classmethod
     def _flatten_image_field(cls, field_value):
-        return {
+        value = {
             'url': field_value['file']['url'],
             'width': field_value['file']['details']['image']['width'],
             'height': field_value['file']['details']['image']['height'],
         }
+
+        try:
+            value['title'] = field_value['title']
+        except KeyError:
+            pass
+
+        return value
 
     @staticmethod
     def _get_value_id(value):
