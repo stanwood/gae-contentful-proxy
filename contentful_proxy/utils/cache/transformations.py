@@ -81,7 +81,9 @@ class ResolveIncludes(object):
                 except (TypeError, KeyError):
                     pass
                 else:
-                    obj = includes[obj['sys']['linkType']][obj['sys']['id']]
+                    obj_id = obj['sys']['id']
+                    obj = includes[obj['sys']['linkType']][obj_id]
+                    obj['id'] = obj_id
 
                 return {
                     key: transform_content(value)
