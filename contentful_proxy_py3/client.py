@@ -1,6 +1,8 @@
 import hashlib
 import json
 
+from urllib.parse import urlencode
+
 from abc import (
     ABC,
     abstractmethod,
@@ -8,6 +10,10 @@ from abc import (
 )
 
 import contentful
+import requests
+
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 from . import transformations
 
@@ -15,6 +21,7 @@ from . import transformations
 class ContentfulClient(ABC):
     CACHE_TTL = 60*60
     CACHE_PREFIX = 'contentful'
+    CONTENTFUL_CDN_URL = 'http://cdn.contentful.com'
 
     @abstractproperty
     def _contentful_space(self):
@@ -24,6 +31,14 @@ class ContentfulClient(ABC):
     def _contentful_token(self):
         pass
 
+    @property
+    def _contentful(self):
+        return contentful.Client(
+            self._contentful_space,
+            self._contentful_token,
+            content_type_cache=False,
+        )
+
     @abstractproperty
     def _vimeo_token(self):
         pass
@@ -31,7 +46,7 @@ class ContentfulClient(ABC):
     @abstractproperty
     def _cache_client(self):
         pass
-    
+
     @abstractmethod
     def _cache_get(self, cache_key: str) -> object:
         pass
@@ -39,7 +54,7 @@ class ContentfulClient(ABC):
     @abstractmethod
     def _cache_set(self, cache_key: str, content: str, expiration_time: int):
         pass
-    
+
     @abstractproperty
     def _proxy_hostname(self):
         pass
@@ -51,37 +66,6 @@ class ContentfulClient(ABC):
         query: dict = None
     ):
         return f'{self.CACHE_PREFIX}:{item_type}:{item_id}?{json.dumps(query)}'
-
-    @property
-    def _contentful(self):
-        return contentful.Client(
-            self._contentful_space,
-            self._contentful_token,
-            raw_mode=True,
-            content_type_cache=False,
-        )
-
-    @property
-    def _types(self):
-
-        return {
-            'content_types': [
-                self._contentful.content_type,
-                self._contentful.content_types
-            ],
-            'entries': [
-                self._contentful.entry,
-                self._contentful.entries
-            ],
-            'assets': [
-                self._contentful.asset,
-                self._contentful.assets
-            ],
-            None: [
-                self._contentful.space,
-                self._contentful.space
-            ]
-        }
 
     @property
     def _contentful_transformations(self):
@@ -103,6 +87,33 @@ class ContentfulClient(ABC):
     def _calculate_md5(self, json_data: str):
         return hashlib.md5(json_data).hexdigest()
 
+    @staticmethod
+    def _request_session():
+        session = requests.Session()
+        retries = Retry(total=3, backoff_factor=1)
+        session.mount('https://', HTTPAdapter(max_retries=retries))
+        return session
+
+    def _generate_request_url(
+        self,
+        item_type: str = None,
+        item_id: int = None,
+        query: dict = None
+    ):
+        request_url = f'{self.CONTENTFUL_CDN_URL}/spaces/{self._contentful_space}/{item_type}'
+        query_string = {}
+
+        if item_id:
+            query_string = {'sys.id': item_id}
+
+        if query:
+            query_string = {**query_string, **query}
+
+        if query_string:
+            return f'{request_url}?{urlencode(query_string)}'
+
+        return request_url
+
     def contentful_get(
         self,
         item_type: str = None,
@@ -117,10 +128,15 @@ class ContentfulClient(ABC):
         if response:
             return json.loads(response), self._calculate_md5(response)
 
-        if item_id:
-            response = self._types[item_type][0](item_id, query=query).json()
-        else:
-            response = self._types[item_type][1](query).json()
+        session = self._request_session()
+        response = session.get(
+            self._generate_request_url(
+                item_type, item_id, query
+            ),
+            headers={
+                'Authorization': f'Bearer {self._contentful_token}'
+            }
+        ).json()
 
         for transformation in self._contentful_transformations:
             transformation(response)
