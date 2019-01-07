@@ -19,7 +19,7 @@ from . import transformations
 
 
 class ContentfulClient(ABC):
-    CACHE_TTL = 60*60
+    CACHE_TTL = 60*10
     CACHE_PREFIX = 'contentful'
     CONTENTFUL_CDN_URL = 'http://cdn.contentful.com'
 
