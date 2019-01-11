@@ -1,6 +1,5 @@
 import datetime
 import json
-import logging
 
 import dateutil.parser
 import requests
@@ -14,11 +13,13 @@ class VimeoTransformation:
     Replace all Vimeo IDs with Vimeo API response.
     """
 
+    CACHE_PREFIX = 'VIMEO_CACHE'
     VIMEO_URL = 'https://api.vimeo.com/videos/{video_id}?fields=download'
 
-    def __init__(self, vimeo_token, cache_get, cache_set):
+    def __init__(self, vimeo_token, cache_get, cache_mget, cache_set):
         self.vimeo_token = vimeo_token
         self.cache_get = cache_get
+        self.cache_mget = cache_mget
         self.cache_set = cache_set
 
     @staticmethod
@@ -36,13 +37,11 @@ class VimeoTransformation:
         ).replace(tzinfo=None)
         return int((expiration - now).total_seconds()) - 120
 
+    def _get_vimeo_cache(self, vimeo_ids):
+        return self.cache_mget(vimeo_ids)
+
     def _get_vimeo_content(self, video_id, token):
-        cache_key = 'VIMEO_{}'.format(video_id)
-
-        cached_response = self.cache_get(cache_key)
-
-        if cached_response:
-            return json.loads(cached_response)
+        cache_key = f'{self.CACHE_PREFIX}:{video_id}'
 
         session = self._request_session()
         response = session.get(
@@ -61,9 +60,37 @@ class VimeoTransformation:
         return response['download']
 
     def __call__(self, content):
-        for index, item in enumerate(content['items']):
-            if item['fields'].get('video'):
-                content['items'][index]['fields']['video'] = self._get_vimeo_content(
-                    item['fields'].get('video'),
-                    self.vimeo_token,
+        vimeo_ids = set([
+            f"{self.CACHE_PREFIX}:{item['fields'].get('video')}"
+            for item in content['items']
+            if item['fields'].get('video')
+        ])
+
+        vimeo_cache = {}
+
+        if vimeo_ids:
+            vimeo_cache = dict(
+                zip(
+                    vimeo_ids,
+                    self.cache_mget(vimeo_ids)
                 )
+            )
+
+        for index, item in enumerate(content['items']):
+            vimeo_id = item['fields'].get('video')  # temporary
+
+            if item['fields'].get('video'):
+                vimeo_data = vimeo_cache.get(
+                    f"{self.CACHE_PREFIX}:{item['fields'].get('video')}"
+                )
+
+                if not vimeo_data:
+                    vimeo_data = self._get_vimeo_content(
+                        item['fields'].get('video'),
+                        self.vimeo_token
+                    )
+                else:
+                    vimeo_data = json.loads(vimeo_data)
+
+                content['items'][index]['fields']['video'] = vimeo_data
+                content['items'][index]['fields']['vimeo'] = vimeo_id

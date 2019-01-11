@@ -1,6 +1,8 @@
 import hashlib
 import json
+import logging
 
+from typing import List
 from urllib.parse import urlencode
 
 from abc import (
@@ -52,6 +54,10 @@ class ContentfulClient(ABC):
         pass
 
     @abstractmethod
+    def _cache_mget(self, cache_keys: List[int]) -> List[object]:
+        pass
+
+    @abstractmethod
     def _cache_set(self, cache_key: str, content: str, expiration_time: int):
         pass
 
@@ -77,15 +83,13 @@ class ContentfulClient(ABC):
             transformations.VimeoTransformation(
                 self._vimeo_token,
                 self._cache_get,
+                self._cache_mget,
                 self._cache_set,
             ),
             transformations.FlattenFields(),
             transformations.RemoveIncludes(),
             transformations.RemoveRootSys(),
         ]
-
-    def _calculate_md5(self, json_data: str):
-        return hashlib.md5(json_data).hexdigest()
 
     @staticmethod
     def _request_session():
@@ -126,7 +130,7 @@ class ContentfulClient(ABC):
 
         response = self._cache_get(cache_key)
         if response:
-            return json.loads(response), self._calculate_md5(response)
+            return json.loads(response)
 
         session = self._request_session()
         response = session.get(
@@ -145,4 +149,4 @@ class ContentfulClient(ABC):
 
         self._cache_set(cache_key, json_response, self.CACHE_TTL)
 
-        return response, self._calculate_md5(json_response.encode('utf-8'))
+        return response
