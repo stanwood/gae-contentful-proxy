@@ -102,19 +102,22 @@ class ContentfulClient(ABC):
         self,
         item_type: str = None,
         item_id: int = None,
-        query: dict = None
+        query_string: str = None
     ):
         request_url = f'{self.CONTENTFUL_CDN_URL}/spaces/{self._contentful_space}/{item_type}'
-        query_string = {}
+        query = ''
 
         if item_id:
-            query_string = {'sys.id': item_id}
-
-        if query:
-            query_string = {**query_string, **query}
+            query = f'sys.id={item_id}'
 
         if query_string:
-            return f'{request_url}?{urlencode(query_string)}'
+            if query:
+                query = f'{query_string}&{query}'
+            else:
+                query = query_string
+
+        if query:
+            return f'{request_url}?{query}'
 
         return request_url
 
