@@ -42,19 +42,11 @@ class ContentfulClient(ABC):
         )
 
     @abstractproperty
-    def _vimeo_token(self):
-        pass
-
-    @abstractproperty
     def _cache_client(self):
         pass
 
     @abstractmethod
     def _cache_get(self, cache_key: str) -> object:
-        pass
-
-    @abstractmethod
-    def _cache_mget(self, cache_keys: List[int]) -> List[object]:
         pass
 
     @abstractmethod
@@ -69,9 +61,9 @@ class ContentfulClient(ABC):
         self,
         item_type: str = None,
         item_id: int = None,
-        query: dict = None
+        query_string: str = None
     ):
-        return f'{self.CACHE_PREFIX}:{item_type}:{item_id}?{json.dumps(query)}'
+        return f'{self.CACHE_PREFIX}:{item_type}:{item_id}?{query_string}'
 
     @property
     def _contentful_transformations(self):
@@ -80,12 +72,6 @@ class ContentfulClient(ABC):
                 proxy_hostname=self._proxy_hostname
             ),
             transformations.ResolveIncludes(),
-            transformations.VimeoTransformation(
-                self._vimeo_token,
-                self._cache_get,
-                self._cache_mget,
-                self._cache_set,
-            ),
             transformations.FlattenFields(),
             transformations.RemoveIncludes(),
             transformations.RemoveRootSys(),
@@ -125,10 +111,10 @@ class ContentfulClient(ABC):
         self,
         item_type: str = None,
         item_id: int = None,
-        query: dict = None
+        query_string: str = None
     ):
         cache_key = self._contentful_cache_key(
-            item_type, item_id, query
+            item_type, item_id, query_string
         )
 
         response = self._cache_get(cache_key)
@@ -138,7 +124,7 @@ class ContentfulClient(ABC):
         session = self._request_session()
         response = session.get(
             self._generate_request_url(
-                item_type, item_id, query
+                item_type, item_id, query_string
             ),
             headers={
                 'Authorization': f'Bearer {self._contentful_token}'
