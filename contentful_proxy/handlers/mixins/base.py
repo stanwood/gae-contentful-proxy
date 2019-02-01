@@ -43,11 +43,16 @@ class ClientMixin(object):
     def contentful_token(self):
         return os.environ['CONTENTFUL_TOKEN']
 
+    @property
+    def contentful_environment(self):
+        return os.environ.get('CONTENTFUL_ENVIRONMENT', 'master')
+
     @webapp2.cached_property
     def contentful(self):
         return cache.Client(
             self.contentful_space,
             self.contentful_token,
+            environment=self.contentful_environment,
             raw_mode=True,
             content_type_cache=False,
             transformations=self.transformations,
