@@ -29,8 +29,12 @@ class ResolveIncludes:
                     pass
                 else:
                     obj_id = obj['sys']['id']
-                    obj = includes[obj['sys']['linkType']][obj_id]
-                    obj['id'] = obj_id
+                    try:
+                        obj = includes[obj['sys']['linkType']][obj_id]
+                    except KeyError:
+                        pass
+                    else:
+                        obj['id'] = obj_id
 
                 return {
                     key: transform_content(value)

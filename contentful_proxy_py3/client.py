@@ -34,11 +34,16 @@ class ContentfulClient(ABC):
         pass
 
     @property
+    def _contentful_environment(self):
+        return 'master'
+
+    @property
     def _contentful(self):
         return contentful.Client(
             self._contentful_space,
             self._contentful_token,
             content_type_cache=False,
+            environment=self._contentful_environment,
         )
 
     @abstractproperty
@@ -90,7 +95,7 @@ class ContentfulClient(ABC):
         item_id: int = None,
         query_string: str = None
     ):
-        request_url = f'{self.CONTENTFUL_CDN_URL}/spaces/{self._contentful_space}/{item_type}'
+        request_url = f'{self.CONTENTFUL_CDN_URL}/spaces/{self._contentful_space}/environments/{self._contentful_environment}/{item_type}'
         query = ''
 
         if item_id:
@@ -104,6 +109,8 @@ class ContentfulClient(ABC):
 
         if query:
             return f'{request_url}?{query}'
+
+        logging.debug(request_url)
 
         return request_url
 
