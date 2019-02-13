@@ -66,9 +66,10 @@ class ContentfulClient(ABC):
         self,
         item_type: str = None,
         item_id: int = None,
-        query_string: str = None
+        query_string: str = None,
+        space_name: str = None,
     ):
-        return f'{self.CACHE_PREFIX}:{item_type}:{item_id}?{query_string}'
+        return f'{self.CACHE_PREFIX}:{space_name}:{item_type}:{item_id}?{query_string}'
 
     @property
     def _contentful_transformations(self):
@@ -121,7 +122,7 @@ class ContentfulClient(ABC):
         query_string: str = None
     ):
         cache_key = self._contentful_cache_key(
-            item_type, item_id, query_string
+            item_type, self._contentful_space, item_id, query_string
         )
 
         response = self._cache_get(cache_key)
