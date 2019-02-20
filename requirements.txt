@@ -2,3 +2,4 @@ requests-toolbelt==0.8.0
 contentful==1.7.0
 retrying==1.3.3
 google-cloud-storage==1.10.0
+rich-text-renderer==0.2.3

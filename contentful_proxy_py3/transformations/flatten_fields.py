@@ -1,7 +1,10 @@
 import logging
 
+import rich_text_renderer
+
 
 class FlattenFields(object):
+    renderer = rich_text_renderer.RichTextRenderer()
 
     @classmethod
     def _flatten_image_field(cls, field_value):
@@ -40,6 +43,11 @@ class FlattenFields(object):
             else:
                 # Asset type, it can be a list of images.
                 return [cls.flatten_field(v) for v in field_value]
+
+        try:
+            return cls.renderer.render(field_value)
+        except Exception:  # It is really raised
+            pass
 
         # Flatten image
         try:
