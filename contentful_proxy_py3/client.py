@@ -34,11 +34,16 @@ class ContentfulClient(ABC):
         pass
 
     @property
+    def _contentful_environment(self):
+        return 'master'
+
+    @property
     def _contentful(self):
         return contentful.Client(
             self._contentful_space,
             self._contentful_token,
             content_type_cache=False,
+            environment=self._contentful_environment,
         )
 
     @abstractproperty
@@ -61,9 +66,10 @@ class ContentfulClient(ABC):
         self,
         item_type: str = None,
         item_id: int = None,
-        query_string: str = None
+        query_string: str = None,
+        space_name: str = None,
     ):
-        return f'{self.CACHE_PREFIX}:{item_type}:{item_id}?{query_string}'
+        return f'{self.CACHE_PREFIX}:{space_name}:{item_type}:{item_id}?{query_string}'
 
     @property
     def _contentful_transformations(self):
@@ -90,7 +96,7 @@ class ContentfulClient(ABC):
         item_id: int = None,
         query_string: str = None
     ):
-        request_url = f'{self.CONTENTFUL_CDN_URL}/spaces/{self._contentful_space}/{item_type}'
+        request_url = f'{self.CONTENTFUL_CDN_URL}/spaces/{self._contentful_space}/environments/{self._contentful_environment}/{item_type}'
         query = ''
 
         if item_id:
@@ -105,6 +111,8 @@ class ContentfulClient(ABC):
         if query:
             return f'{request_url}?{query}'
 
+        logging.debug(request_url)
+
         return request_url
 
     def contentful_get(
@@ -114,7 +122,7 @@ class ContentfulClient(ABC):
         query_string: str = None
     ):
         cache_key = self._contentful_cache_key(
-            item_type, item_id, query_string
+            item_type, self._contentful_space, item_id, query_string
         )
 
         response = self._cache_get(cache_key)

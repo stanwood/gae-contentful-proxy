@@ -1,7 +1,26 @@
 import logging
 
+import rich_text_renderer
+from rich_text_renderer.base_node_renderer import BaseNodeRenderer
+
+
+class ImageRenderer(BaseNodeRenderer):
+    IMAGE_HTML = '<img src="{0}" alt="{1}" />'
+
+    def render(self, node):
+        entry = node['data']['target']
+
+        return self.IMAGE_HTML.format(
+            entry['file']['url'], entry['title']
+        )
+
 
 class FlattenFields(object):
+    renderer = rich_text_renderer.RichTextRenderer(
+        {
+            'embedded-asset-block': ImageRenderer
+        }
+    )
 
     @classmethod
     def _flatten_image_field(cls, field_value):
@@ -27,6 +46,12 @@ class FlattenFields(object):
 
     @classmethod
     def flatten_field(cls, field_value):
+        # Flatten richText fields
+        try:
+            return cls.renderer.render(field_value)
+        except Exception:  # It is really raised
+            pass
+
         if isinstance(field_value, (str, bool, int, float)):
             # No flattening
             return field_value
